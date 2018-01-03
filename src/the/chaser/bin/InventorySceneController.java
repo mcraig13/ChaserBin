@@ -110,7 +110,9 @@ public class InventorySceneController implements Initializable {
 	try {
 	    defaultMessage = messageLabel.getText();
             Class.forName("com.mysql.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/chaserbin","root","");
+	    System.out.println("PLS WORK");
+            conn = DriverManager.getConnection("jdbc:mysql://192.168.0.18:3306/chaserbin","admin","");
+	    System.out.println("IT WORKED");
             st = conn.createStatement();
             categorySelectionList = FXCollections.observableArrayList("Video Game", "Console", "Peripheral");
 	    consoleSelectionList = FXCollections.observableArrayList(
