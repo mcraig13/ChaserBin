@@ -28,7 +28,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.SelectionModel;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -104,15 +103,15 @@ public class InventorySceneController implements Initializable {
 
     /**
      * Initialises the controller class.
+     * @param url
+     * @param rb
      */
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 	try {
 	    defaultMessage = messageLabel.getText();
             Class.forName("com.mysql.jdbc.Driver");
-	    System.out.println("PLS WORK");
             conn = DriverManager.getConnection("jdbc:mysql://192.168.0.18:3306/chaserbin","admin","");
-	    System.out.println("IT WORKED");
             st = conn.createStatement();
             categorySelectionList = FXCollections.observableArrayList("Video Game", "Console", "Peripheral");
 	    consoleSelectionList = FXCollections.observableArrayList(
@@ -232,40 +231,42 @@ public class InventorySceneController implements Initializable {
 	String searchValue = searchBar.getText();
         searchResults = new ArrayList<>();
         clearFields();
-        try{
-            String query = "select * from inventory where Barcode = " + searchValue;
-            rs = st.executeQuery(query);
-            System.out.println("Searching");
+        if(searchValue.matches("[0-9]+") && searchValue.length() > 11) {
+            try{
+                String query = "select * from inventory where Barcode = " + searchValue;
+                rs = st.executeQuery(query);
             
-            if(!rs.isBeforeFirst()) {
-		clearFields();
-		resultHolder.getChildren().clear();
-		messageLabel.setText("No Results Found. Please add the item details above.");
-		barcodeField.setText(searchValue);
-            }else {
-                while(rs.next()) {
-                    int id = rs.getInt("id");
-                    String name = rs.getString("Name");
-                    String category = rs.getString("Category");
-                    String console = rs.getString("Console");
-		    LocalDate date = rs.getDate("Date").toLocalDate();
-		    String shop = rs.getString("Shop");
-                    float boughtPrice = rs.getFloat("Price");
-                    float sellPrice = rs.getFloat("Sold");
-		    
-                    Item item = new Item(id,searchValue,name,category,console,date,shop,boughtPrice,sellPrice);
-                    searchResults.add(item);
-                }
+                if(!rs.isBeforeFirst()) {
+                    clearFields();
+                    resultHolder.getChildren().clear();
+                    messageLabel.setText("No Results Found. Please add the item details above.");
+                    barcodeField.setText(searchValue);
+                }else {
+                    while(rs.next()) {
+                        int id = rs.getInt("id");
+                        String name = rs.getString("Name");
+                        String category = rs.getString("Category");
+                        String console = rs.getString("Console");
+                        LocalDate date = rs.getDate("Date").toLocalDate();
+                        String shop = rs.getString("Shop");
+                        float boughtPrice = rs.getFloat("Price");
+                        float sellPrice = rs.getFloat("Sold");
+
+                        Item item = new Item(id,searchValue,name,category,console,date,shop,boughtPrice,sellPrice);
+                        searchResults.add(item);
+                    }
 		qtyField.setText(Integer.toString(searchResults.size()));
 		messageLabel.setText("Found " + searchResults.size() + " result(s)");
 		createResultButtons(searchResults);
-            }
-	
-        } catch(SQLException e){
-            System.out.println("Error: " + e);
-        }       
+                }
+            } catch(SQLException e){
+                System.out.println("Error: " + e);
+            }   
+        } else {
+            messageLabel.setText("Not a valid barcode");
+            //search for names here else not valid search term
+        }
     }
-    
 
     @FXML
     private void onEnter(ActionEvent event) throws IOException {
