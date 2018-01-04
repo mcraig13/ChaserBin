@@ -25,6 +25,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -62,13 +63,25 @@ public class InventorySceneController implements Initializable {
     @FXML
     private TextField soldField;
     @FXML
-    private Label soldCountField;
-    @FXML
-    private Label qtyField;
-    @FXML
     private TextField priceField;
     @FXML
     private TextField shopField;
+    @FXML
+    private Label numberSoldField;
+    @FXML
+    private Label highestSellField;
+    @FXML
+    private Label lowestSellField;
+    @FXML
+    private Label averageSellField;
+    @FXML
+    private Label qtyField;
+    @FXML
+    private Label highestBoughtField;
+    @FXML
+    private Label lowestBoughtField;
+    @FXML
+    private Label averageBoughtField;
     @FXML
     private DatePicker dateField;
     @FXML
@@ -78,15 +91,13 @@ public class InventorySceneController implements Initializable {
     @FXML
     private ChoiceBox consoleField;
     @FXML
+    private CheckBox soldItemsCheck;
+    @FXML
     public VBox resultHolder;
     @FXML
     public VBox gamesHolder;
     @FXML
     private Label messageLabel;
-    @FXML
-    private Label avgPriceLabel;
-    @FXML
-    private Label avgSoldLabel;
     @FXML
     private TabPane tabPane;
     
@@ -100,6 +111,7 @@ public class InventorySceneController implements Initializable {
     private ObservableList<String> categorySelectionList;
     private ObservableList<String> consoleSelectionList;
     private SingleSelectionModel<Tab> selectionModel;
+    private Statistics stats;
 
     /**
      * Initialises the controller class.
@@ -124,6 +136,7 @@ public class InventorySceneController implements Initializable {
 	    categoryField.setItems(categorySelectionList);
 	    categoryChooser.setItems(consoleSelectionList);
 	    selectionModel = tabPane.getSelectionModel();
+	    stats = new Statistics();
 	    
 	    categoryChooser.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
 		@Override
@@ -148,31 +161,58 @@ public class InventorySceneController implements Initializable {
         priceField.clear();
 	shopField.clear();
         soldField.clear();
-        soldCountField.setText("0");
+	numberSoldField.setText("0");
+	highestSellField.setText("0");
+	lowestSellField.setText("0");
+	averageSellField.setText("0");
         qtyField.setText("0");
+	highestBoughtField.setText("0");
+	lowestBoughtField.setText("0");
+	averageBoughtField.setText("0");
     }
     
     private void createGamesButtons(int newValue) {
 	String console = '"' + consoleSelectionList.get(newValue) + '"';
 	gamesHolder.getChildren().clear();
-	try{
-            String query = "select * from inventory where Console = " + console + " and (Sold = 0 or Sold IS NULL) GROUP BY Barcode ORDER BY Name";
-            rs = st.executeQuery(query);
-	    System.out.println(rs.first());
-	    do {
-		//for each item in PS1 category
-		//create a button labelled name of game
-		Button b = new Button();
-		String bc = rs.getString("Barcode");
-		b.setId(bc);
-		b.setText(rs.getString("Name"));
-		b.setMinWidth(400);
-		b.addEventHandler(MouseEvent.MOUSE_CLICKED, resultHolderUpdater(b));
-		gamesHolder.getChildren().add(b);
-	    } while(rs.next());
-        } catch(SQLException e){
-            System.out.println("Error: " + e);
-        }   
+	if(!soldItemsCheck.isSelected()) {
+	    try{
+		String query = "select * from inventory where Console = " + console + " GROUP BY Barcode ORDER BY Name";
+		rs = st.executeQuery(query);
+		System.out.println(rs.first());
+		do {
+		    //for each item in PS1 category
+		    //create a button labelled name of game
+		    Button b = new Button();
+		    String bc = rs.getString("Barcode");
+		    b.setId(bc);
+		    b.setText(rs.getString("Name"));
+		    b.setMinWidth(400);
+		    b.addEventHandler(MouseEvent.MOUSE_CLICKED, resultHolderUpdater(b));
+		    gamesHolder.getChildren().add(b);
+		} while(rs.next());
+	    } catch(SQLException e){
+		System.out.println("Error: " + e);
+	    }   
+	} else {
+	    try{
+		String query = "select * from inventory where Console = " + console + " and (Sold > 0) GROUP BY Barcode ORDER BY Name";
+		rs = st.executeQuery(query);
+		System.out.println(rs.first());
+		do {
+		    //for each item in PS1 category
+		    //create a button labelled name of game
+		    Button b = new Button();
+		    String bc = rs.getString("Barcode");
+		    b.setId(bc);
+		    b.setText(rs.getString("Name"));
+		    b.setMinWidth(400);
+		    b.addEventHandler(MouseEvent.MOUSE_CLICKED, resultHolderUpdater(b));
+		    gamesHolder.getChildren().add(b);
+		} while(rs.next());
+	    } catch(SQLException e){
+		System.out.println("Error: " + e);
+	    }  
+	}
     }
     
     public EventHandler<Event> resultHolderUpdater(Button b) {
@@ -183,10 +223,10 @@ public class InventorySceneController implements Initializable {
 		searchBar.setText(b.getId());
 		search();
 		selectionModel.select(0);
+		nameField.setText(b.getText());
 	    }
 	};
 	return resultButtonHandler;
-	
     }
     
     private void createResultButtons(ArrayList<Item> results) {
@@ -217,8 +257,7 @@ public class InventorySceneController implements Initializable {
 		dateField.setValue(currentItem.getDate());
 		priceField.setText(String.valueOf(currentItem.getBoughtPrice()));
 		soldField.setText(String.valueOf(currentItem.getSellPrice()));
-		shopField.setText(currentItem.getShop());
-		qtyField.setText(Integer.toString(results.size()));	
+		shopField.setText(currentItem.getShop());	
 		
 		messageLabel.setText("Item ID: " + idField.getText() + " has been selected");
 		deleteButton.setDisable(false);
@@ -235,12 +274,12 @@ public class InventorySceneController implements Initializable {
             try{
                 String query = "select * from inventory where Barcode = " + searchValue;
                 rs = st.executeQuery(query);
+		barcodeField.setText(searchValue);
             
                 if(!rs.isBeforeFirst()) {
                     clearFields();
                     resultHolder.getChildren().clear();
                     messageLabel.setText("No Results Found. Please add the item details above.");
-                    barcodeField.setText(searchValue);
                 }else {
                     while(rs.next()) {
                         int id = rs.getInt("id");
@@ -255,9 +294,16 @@ public class InventorySceneController implements Initializable {
                         Item item = new Item(id,searchValue,name,category,console,date,shop,boughtPrice,sellPrice);
                         searchResults.add(item);
                     }
-		qtyField.setText(Integer.toString(searchResults.size()));
 		messageLabel.setText("Found " + searchResults.size() + " result(s)");
 		createResultButtons(searchResults);
+		averageBoughtField.setText(stats.getAverage(searchResults, "b"));
+		highestBoughtField.setText(stats.getHighest(searchResults, "b"));
+		lowestBoughtField.setText(stats.getLowest(searchResults, "b"));
+		averageSellField.setText(stats.getAverage(searchResults, "s"));
+		highestSellField.setText(stats.getHighest(searchResults, "s"));
+		lowestSellField.setText(stats.getLowest(searchResults, "s"));
+		numberSoldField.setText(stats.getNumberSold(searchResults));
+		qtyField.setText(stats.getQuantity(searchResults));
                 }
             } catch(SQLException e){
                 System.out.println("Error: " + e);
@@ -340,7 +386,6 @@ public class InventorySceneController implements Initializable {
 		messageLabel.setText("Failed to update item, check the fields.");
 	    }
 	}
-	
     }
 
     @FXML
@@ -376,5 +421,4 @@ public class InventorySceneController implements Initializable {
 	    messageLabel.setText("Failed to delete item, check the fields.");
 	}
     }
-    
 }

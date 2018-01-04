@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
@@ -9,7 +10,9 @@
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <SplitPane dividerPositions="0.29797979797979796" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="the.chaser.bin.InventorySceneController">
@@ -17,12 +20,12 @@
     <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
          <children>
             <TextField fx:id="searchBar" layoutX="13.0" layoutY="14.0" onAction="#onEnter" promptText="Q Name / Barcode" />
-            <Button fx:id="addButton" layoutX="13.0" layoutY="78.0" mnemonicParsing="false" onAction="#addButtonHandler" prefHeight="25.0" prefWidth="88.0" text="Add/Update" />
+            <Button fx:id="addButton" layoutX="13.0" layoutY="78.0" mnemonicParsing="false" onAction="#addButtonHandler" prefHeight="25.0" prefWidth="82.0" text="Add/Update" />
             <ScrollPane layoutY="111.0" prefHeight="707.0" prefWidth="175.0">
                <content>
                   <VBox fx:id="resultHolder" prefHeight="198.0" prefWidth="165.0" />
                </content></ScrollPane>
-            <Button fx:id="resetButton" layoutX="113.0" layoutY="78.0" mnemonicParsing="false" onAction="#resetButtonHandler" prefHeight="25.0" prefWidth="48.0" text="Reset" />
+            <Button fx:id="resetButton" layoutX="103.0" layoutY="78.0" mnemonicParsing="false" onAction="#resetButtonHandler" prefHeight="25.0" prefWidth="58.0" text="Reset" />
             <Button fx:id="searchButton" layoutX="14.0" layoutY="39.0" mnemonicParsing="false" onAction="#searchButtonHandler" prefHeight="25.0" prefWidth="149.0" text="Search" />
          </children></AnchorPane>
       <TabPane fx:id="tabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE">
@@ -47,32 +50,67 @@
                         <TextField fx:id="shopField" layoutX="93.0" layoutY="206.0" prefHeight="25.0" prefWidth="310.0" />
                         <Label layoutX="14.0" layoutY="242.0" prefHeight="17.0" prefWidth="68.0" text="Price" />
                         <TextField fx:id="priceField" layoutX="92.0" layoutY="238.0" prefHeight="25.0" prefWidth="58.0" />
-                        <Label layoutX="14.0" layoutY="275.0" prefHeight="17.0" prefWidth="68.0" text="Sold" />
-                        <TextField fx:id="soldField" layoutX="92.0" layoutY="271.0" prefHeight="25.0" prefWidth="58.0" />
-                        <Label layoutX="14.0" layoutY="306.0" prefHeight="17.0" prefWidth="68.0" text="Sold Count" />
-                        <Label layoutX="14.0" layoutY="335.0" prefHeight="17.0" prefWidth="68.0" text="Qty" />
-                        <Label fx:id="qtyField" layoutX="96.0" layoutY="335.0" text="0" />
+                        <Label layoutX="180.0" layoutY="242.0" prefHeight="17.0" prefWidth="58.0" text="Sold" />
+                        <TextField fx:id="soldField" layoutX="245.0" layoutY="238.0" prefHeight="25.0" prefWidth="58.0" />
                         <Label fx:id="messageLabel" layoutX="9.0" layoutY="747.0" text="Welcome to the Inventory Manager" />
-                        <Label fx:id="avgPriceLabel" layoutX="167.0" layoutY="242.0" text="Avg. Bought Price: " />
-                        <Label fx:id="avgSoldLabel" layoutX="167.0" layoutY="275.0" text="Avg. Sell Price: " />
                         <Button fx:id="deleteButton" cancelButton="true" disable="true" layoutX="324.0" layoutY="763.0" mnemonicParsing="false" onAction="#deleteButtonHandler" text="Delete Item" />
-                        <Label fx:id="soldCountField" layoutX="96.0" layoutY="306.0" text="0" />
+                        <TitledPane animated="false" layoutX="9.0" layoutY="270.0" prefHeight="122.0" prefWidth="399.0" text="Statistics">
+                           <content>
+                              <HBox prefHeight="100.0" prefWidth="200.0">
+                                 <children>
+                                    <VBox prefHeight="200.0" prefWidth="100.0">
+                                       <children>
+                                          <Label text="Number Sold" />
+                                          <Label text="Highest Sell" />
+                                          <Label text="Lowest Sell" />
+                                          <Label text="Average Sell" />
+                                       </children>
+                                    </VBox>
+                                    <VBox prefHeight="200.0" prefWidth="100.0">
+                                       <children>
+                                          <Label fx:id="numberSoldField" text="0" />
+                                          <Label fx:id="highestSellField" text="0" />
+                                          <Label fx:id="lowestSellField" text="0" />
+                                          <Label fx:id="averageSellField" text="0" />
+                                       </children>
+                                    </VBox>
+                                    <VBox prefHeight="200.0" prefWidth="100.0">
+                                       <children>
+                                          <Label text="Quantity" />
+                                          <Label text="Highest Bought" />
+                                          <Label text="Lowest Bought" />
+                                          <Label text="Average Bought" />
+                                       </children>
+                                    </VBox>
+                                    <VBox prefHeight="200.0" prefWidth="100.0">
+                                       <children>
+                                          <Label fx:id="qtyField" text="0" />
+                                          <Label fx:id="highestBoughtField" text="0" />
+                                          <Label fx:id="lowestBoughtField" text="0" />
+                                          <Label fx:id="averageBoughtField" text="0" />
+                                       </children>
+                                    </VBox>
+                                 </children>
+                              </HBox>
+                           </content>
+                        </TitledPane>
                      </children>
                   </AnchorPane>
                </content>
             </Tab>
           <Tab text="Games">
                <content>
-                  <SplitPane dividerPositions="0.06892067620286085" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
+                  <SplitPane dividerPositions="0.11313394018205461" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
                     <items>
-                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="112.0" prefWidth="417.0">
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="52.0" prefWidth="417.0">
                            <children>
                               <ChoiceBox fx:id="categoryChooser" layoutX="14.0" layoutY="13.0" prefHeight="25.0" prefWidth="392.0" />
+                              <CheckBox fx:id="soldItemsCheck" layoutX="23.0" layoutY="53.0" mnemonicParsing="false" text="Sold Items Only" />
                            </children>
                         </AnchorPane>
                         <ScrollPane prefHeight="200.0" prefWidth="200.0">
                            <content>
-                              <VBox fx:id="gamesHolder" prefHeight="707.0" prefWidth="410.0" />
+                              <VBox fx:id="gamesHolder" prefHeight="679.0" prefWidth="410.0" />
                            </content>
                         </ScrollPane>
                     </items>
