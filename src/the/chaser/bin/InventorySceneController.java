@@ -6,13 +6,11 @@
 package the.chaser.bin;
 
 import java.sql.*;
-import java.io.IOException;
 import java.net.URL;
 
 import java.util.ResourceBundle;
 import java.util.ArrayList;
 
-import java.time.LocalDate;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 
@@ -45,13 +43,7 @@ import javafx.stage.Stage;
 public class InventorySceneController implements Initializable {
 
     @FXML
-    private Button addButton;
-    @FXML
     private Button deleteButton;
-    @FXML
-    private Button searchButton;
-    @FXML
-    private Button resetButton;
     @FXML
     private TextField searchBar;
     @FXML
@@ -89,6 +81,8 @@ public class InventorySceneController implements Initializable {
     @FXML
     private ChoiceBox categoryChooser;
     @FXML
+    private ChoiceBox consoleChooser;
+    @FXML
     private ChoiceBox consoleField;
     @FXML
     private CheckBox soldItemsCheck;
@@ -96,6 +90,8 @@ public class InventorySceneController implements Initializable {
     public VBox resultHolder;
     @FXML
     public VBox gamesHolder;
+    @FXML
+    public VBox consoleHolder;
     @FXML
     private Label messageLabel;
     @FXML
@@ -112,6 +108,7 @@ public class InventorySceneController implements Initializable {
     private ObservableList<String> consoleSelectionList;
     private SingleSelectionModel<Tab> selectionModel;
     private Statistics stats;
+    private Search search;
 
     /**
      * Initialises the controller class.
@@ -131,17 +128,27 @@ public class InventorySceneController implements Initializable {
 		    "Xbox", "Xbox 360", "Xbox One", 
 		    "NES", "SNES", "Nintendo 64", 
 		    "Nintendo GC", "Nintendo Wii", "Nintendo Wii U", "Nintendo Switch", 
-		    "Nintendo DS", "Nintendo 3DS", "Sega Mega Drive");
+		    "Nintendo DS", "Nintendo 3DS", "Sega Mega Drive", "Dreamcast");
 	    consoleField.setItems(consoleSelectionList);
 	    categoryField.setItems(categorySelectionList);
 	    categoryChooser.setItems(consoleSelectionList);
+	    consoleChooser.setItems(consoleSelectionList);
 	    selectionModel = tabPane.getSelectionModel();
 	    stats = new Statistics();
+	    search = new Search();
 	    
 	    categoryChooser.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
 		@Override
 		public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
 		    createGamesButtons((Integer) newValue);
+		}
+	    }
+	    );
+		    
+	    consoleChooser.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
+		@Override
+		public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+		    createConsolesButtons((Integer) newValue);
 		}
 	    }
 	    );
@@ -171,12 +178,36 @@ public class InventorySceneController implements Initializable {
 	averageBoughtField.setText("0");
     }
     
+    private void createConsolesButtons(int newValue) {
+	String console = '"' + consoleSelectionList.get(newValue) + '"';
+	consoleHolder.getChildren().clear();
+	
+	try{
+	       String query = "select * from inventory where Category = 'Console' and Console = " + console + " GROUP BY Name ORDER BY Name";
+	       rs = st.executeQuery(query);
+	       System.out.println(rs.first());
+	       do {
+		   //for each item in PS1 category
+		   //create a button labelled name of game
+		   Button b = new Button();
+		   String bc = rs.getString("Name");
+		   b.setId(bc);
+		   b.setText(rs.getString("Name"));
+		   b.setMinWidth(400);
+		   b.addEventHandler(MouseEvent.MOUSE_CLICKED, resultHolderUpdater(b));
+		   consoleHolder.getChildren().add(b);
+	       } while(rs.next());
+	    } catch(SQLException e){
+	       System.out.println("Error: " + e);
+	    }   
+    }
+    
     private void createGamesButtons(int newValue) {
 	String console = '"' + consoleSelectionList.get(newValue) + '"';
 	gamesHolder.getChildren().clear();
 	if(!soldItemsCheck.isSelected()) {
 	    try{
-		String query = "select * from inventory where Console = " + console + " GROUP BY Barcode ORDER BY Name";
+		String query = "select * from inventory where Category = 'Video Game' and Console = " + console + " GROUP BY Barcode ORDER BY Name";
 		rs = st.executeQuery(query);
 		System.out.println(rs.first());
 		do {
@@ -195,7 +226,7 @@ public class InventorySceneController implements Initializable {
 	    }   
 	} else {
 	    try{
-		String query = "select * from inventory where Console = " + console + " and (Sold > 0) GROUP BY Barcode ORDER BY Name";
+		String query = "select * from inventory where Category = 'Video Game' and Console = " + console + " and (Sold > 0) GROUP BY Barcode ORDER BY Name";
 		rs = st.executeQuery(query);
 		System.out.println(rs.first());
 		do {
@@ -223,18 +254,52 @@ public class InventorySceneController implements Initializable {
 		searchBar.setText(b.getId());
 		search();
 		selectionModel.select(0);
-		nameField.setText(b.getText());
 	    }
 	};
 	return resultButtonHandler;
     }
     
+    public void search(){
+	String searchValue = searchBar.getText();
+	
+        searchResults = new ArrayList<>();
+        clearFields();
+        if(searchValue.matches("[0-9]+") && searchValue.length() > 9) {
+	    try {
+		searchResults = search.searchByBarcode(searchValue, st);
+	    } catch (SQLException ex) {
+		System.out.println("Error: " + ex);
+	    }
+	} else {
+	    try {
+		searchResults = search.searchByName(searchValue, st);
+	    } catch (SQLException ex) {
+		System.out.println("Error: " + ex);
+	    }
+	}
+	if(searchResults.isEmpty()) {
+	    messageLabel.setText("No items found");
+	    barcodeField.setText(searchValue);
+	} else {
+	    messageLabel.setText("Found " + searchResults.size() + " result(s)");
+	    createResultButtons(searchResults);
+	    averageBoughtField.setText(stats.getAverage(searchResults, "b"));
+	    highestBoughtField.setText(stats.getHighest(searchResults, "b"));
+	    lowestBoughtField.setText(stats.getLowest(searchResults, "b"));
+	    averageSellField.setText(stats.getAverage(searchResults, "s"));
+	    highestSellField.setText(stats.getHighest(searchResults, "s"));
+	    lowestSellField.setText(stats.getLowest(searchResults, "s"));
+	    numberSoldField.setText(stats.getNumberSold(searchResults));
+	    qtyField.setText(stats.getQuantity(searchResults));   
+        }
+    }
+
     private void createResultButtons(ArrayList<Item> results) {
 	resultHolder.getChildren().clear();
 	for(Item r : results) {
 	    Button b = new Button();
 	    b.setId(Integer.toString(results.indexOf(r)));
-	    b.setText("ID: " + Integer.toString(r.getId()));
+	    b.setText("ID: " + r.getBarcode());
 	    b.addEventHandler(MouseEvent.MOUSE_CLICKED, createResultButtonHandler(b, results));
 	    b.setMinWidth(175);
 	    resultHolder.getChildren().add(b);
@@ -266,59 +331,7 @@ public class InventorySceneController implements Initializable {
 	return resultButtonHandler;
     }
     
-    public void search(){
-	String searchValue = searchBar.getText();
-        searchResults = new ArrayList<>();
-        clearFields();
-        if(searchValue.matches("[0-9]+") && searchValue.length() > 11) {
-            try{
-                String query = "select * from inventory where Barcode = " + searchValue;
-                rs = st.executeQuery(query);
-		barcodeField.setText(searchValue);
-            
-                if(!rs.isBeforeFirst()) {
-                    clearFields();
-                    resultHolder.getChildren().clear();
-                    messageLabel.setText("No Results Found. Please add the item details above.");
-                }else {
-                    while(rs.next()) {
-                        int id = rs.getInt("id");
-                        String name = rs.getString("Name");
-                        String category = rs.getString("Category");
-                        String console = rs.getString("Console");
-                        LocalDate date = rs.getDate("Date").toLocalDate();
-                        String shop = rs.getString("Shop");
-                        float boughtPrice = rs.getFloat("Price");
-                        float sellPrice = rs.getFloat("Sold");
-
-                        Item item = new Item(id,searchValue,name,category,console,date,shop,boughtPrice,sellPrice);
-                        searchResults.add(item);
-                    }
-		messageLabel.setText("Found " + searchResults.size() + " result(s)");
-		createResultButtons(searchResults);
-		averageBoughtField.setText(stats.getAverage(searchResults, "b"));
-		highestBoughtField.setText(stats.getHighest(searchResults, "b"));
-		lowestBoughtField.setText(stats.getLowest(searchResults, "b"));
-		averageSellField.setText(stats.getAverage(searchResults, "s"));
-		highestSellField.setText(stats.getHighest(searchResults, "s"));
-		lowestSellField.setText(stats.getLowest(searchResults, "s"));
-		numberSoldField.setText(stats.getNumberSold(searchResults));
-		qtyField.setText(stats.getQuantity(searchResults));
-                }
-            } catch(SQLException e){
-                System.out.println("Error: " + e);
-            }   
-        } else {
-            messageLabel.setText("Not a valid barcode");
-            //search for names here else not valid search term
-        }
-    }
-
-    @FXML
-    private void onEnter(ActionEvent event) throws IOException {
-        search();
-    }
-
+    
     @FXML
     private void addButtonHandler(ActionEvent event) {
 
@@ -395,11 +408,6 @@ public class InventorySceneController implements Initializable {
 	resultHolder.getChildren().clear();
 	messageLabel.setText(defaultMessage);	
 	searchBar.requestFocus();
-    }
-    
-    @FXML
-    private void searchButtonHandler(ActionEvent event) {
-	search();
     }
     
     @FXML
